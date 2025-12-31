@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Criar Conta</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon_io/favicon-16x16.png">
+    <link rel="manifest" href="/static/favicon_io/site.manifest">
+</head>
+<body>
+    <div class="login-container">
+        <h2>Novo Usuario</h2>
+        <form action="/register" method="POST">
+            <input type="text" name="username" placeholder="Escolha um usuario" required>
+            <input type="password" name="password" placeholder="Escolha uma senha" required>
+            <button type="submit" class="btnRegis">Registrar</button>
+            <p>
+                <a href="/" class="btnRegis">Voltar ao Login</a>
+            </p>
+        </form>
+    </div>
+</body>
+</html>

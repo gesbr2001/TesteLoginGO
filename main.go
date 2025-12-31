@@ -25,26 +25,21 @@ func main() {
 		log.Fatal("Erro ao conectar ao banco: ", err)
 	}
 
-	// 🔹 ROTAS DINÂMICAS PRIMEIRO
+	// 🔹 ROTAS
+	http.HandleFunc("/", loginPage)
 	http.HandleFunc("/login", processarLogin)
-	http.HandleFunc("/register", processarRegisto)
+	http.HandleFunc("/register", registerHandler)
 	http.HandleFunc("/pagina_inicio", paginaInicio)
 
-	// 🔹 ARQUIVOS ESTÁTICOS DEPOIS
-	fs := http.FileServer(http.Dir("."))
-	http.Handle("/", fs)
+	// 🔹 ARQUIVOS ESTÁTICOS
+	http.Handle("/static/",
+		http.StripPrefix("/static/",
+			http.FileServer(http.Dir("static")),
+		),
+	)
 
 	fmt.Println("Servidor a correr em http://localhost:3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))
-}
-
-func paginaInicio(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
-		return
-	}
-
-	http.ServeFile(w, r, "pagina_inicio.html")
 }
 
 func processarLogin(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +58,7 @@ func processarLogin(w http.ResponseWriter, r *http.Request) {
 	).Scan(&senhaNoBanco)
 
 	if err != nil {
-		fmt.Fprint(w, "Utilizador não encontrado.")
+		http.Error(w, "Utilizador não encontrado", http.StatusUnauthorized)
 		return
 	}
 
@@ -72,34 +67,86 @@ func processarLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w, "Senha incorreta.")
+	http.Error(w, "Senha incorreta", http.StatusUnauthorized)
 }
 
-// --- NOVA FUNÇÃO DE REGISTO ---
+//REGISTRO
 func processarRegisto(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	novoUsuario := r.FormValue("username")
+	novaSenha := r.FormValue("password")
+
+	if novoUsuario == "" || novaSenha == "" {
+		http.Error(w, "Preencha todos os campos", http.StatusBadRequest)
+		return
+	}
+
+		//VERIFICAÇÃO SE JA EXISTE O USUARIO selecionando apenas o id para ser mais rapdio
+			var idExistente int 
+			err := db.QueryRow("SELECT id FROM usuarios WHERE username=?", novoUsuario).Scan(&idExistente)
+
+			if err == nil {
+				fmt.Fprintf(w, "Erro: O nome de utilizador '%s' já está em uso.", novoUsuario)
+				return
+			}
+			
+
+
+			_, err = db.Exec("INSERT INTO usuarios (username, password) VALUES (?, ?)", novoUsuario, novaSenha)
+
+			if err != nil {
+				fmt.Println("Erro SQL:", err)
+				fmt.Fprintf(w, "Erro ao criar conta.")
+				return
+			}
+		
+			fmt.Fprintf(
+				w,
+				"Conta criada com sucesso! <a href='/'>Clique aqui para fazer login</a>",
+			)
+			
+		}
+
+	
+
+
+
+// LOGIN DE PAGE
+func loginPage(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	if r.Method != http.MethodGet {
 		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
 		return
 	}
 
-	novoUsuario := r.FormValue("username")
-	novaSenha := r.FormValue("password")
+	http.ServeFile(w, r, "templates/login.html")
+}
 
-	// Verificar se os campos não estão vazios
-	if novoUsuario == "" || novaSenha == "" {
-		fmt.Fprintf(w, "Por favor, preencha todos os campos.")
+//PAGINA INICIO
+func paginaInicio(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Inserir no Banco de Dados
-	// Usamos 'Exec' para comandos que não retornam linhas (como INSERT, UPDATE)
-	_, err := db.Exec("INSERT INTO usuarios (username, password) VALUES (?, ?)", novoUsuario, novaSenha)
+	http.ServeFile(w, r, "templates/pagina_inicio.html")
+}
 
-	if err != nil {
-		fmt.Println("Erro SQL:", err)
-		fmt.Fprintf(w, "Erro ao criar utilizador. Talvez o nome já exista?")
+
+//REGISTRO DE HANDLER
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		http.ServeFile(w, r, "templates/register.html")
 		return
 	}
 
-	fmt.Fprintf(w, "Conta criada com sucesso! <a href='/login.html'>Clique aqui para fazer login</a>")
+	if r.Method == http.MethodPost {
+		processarRegisto(w, r)
+		return
+	}
+
+	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
 }
