@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -38,8 +37,26 @@ func main() {
 		),
 	)
 
-	fmt.Println("Servidor a correr em http://localhost:3000")
+	log.Println("Servidor rodando em http://localhost:3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))
+}
+
+//
+// ================== LOGIN ==================
+//
+
+func loginPage(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	http.ServeFile(w, r, "templates/login.html")
 }
 
 func processarLogin(w http.ResponseWriter, r *http.Request) {
@@ -57,86 +74,20 @@ func processarLogin(w http.ResponseWriter, r *http.Request) {
 		usuario,
 	).Scan(&senhaNoBanco)
 
-	if err != nil {
-		http.Error(w, "Utilizador não encontrado", http.StatusUnauthorized)
+	w.Header().Set("Content-Type", "application/json")
+
+	if err != nil || senha != senhaNoBanco {
+		w.Write([]byte(`{"success": false, "message": "Usuário ou senha inválidos"}`))
 		return
 	}
 
-	if senha == senhaNoBanco {
-		http.Redirect(w, r, "/pagina_inicio", http.StatusSeeOther)
-		return
-	}
-
-	http.Error(w, "Senha incorreta", http.StatusUnauthorized)
+	w.Write([]byte(`{"success": true}`))
 }
 
-//REGISTRO
-func processarRegisto(w http.ResponseWriter, r *http.Request) {
-	novoUsuario := r.FormValue("username")
-	novaSenha := r.FormValue("password")
+//
+// ================== REGISTRO ==================
+//
 
-	if novoUsuario == "" || novaSenha == "" {
-		http.Error(w, "Preencha todos os campos", http.StatusBadRequest)
-		return
-	}
-
-		//VERIFICAÇÃO SE JA EXISTE O USUARIO selecionando apenas o id para ser mais rapdio
-			var idExistente int 
-			err := db.QueryRow("SELECT id FROM usuarios WHERE username=?", novoUsuario).Scan(&idExistente)
-
-			if err == nil {
-				fmt.Fprintf(w, "Erro: O nome de utilizador '%s' já está em uso.", novoUsuario)
-				return
-			}
-			
-
-
-			_, err = db.Exec("INSERT INTO usuarios (username, password) VALUES (?, ?)", novoUsuario, novaSenha)
-
-			if err != nil {
-				fmt.Println("Erro SQL:", err)
-				fmt.Fprintf(w, "Erro ao criar conta.")
-				return
-			}
-		
-			fmt.Fprintf(
-				w,
-				"Conta criada com sucesso! <a href='/'>Clique aqui para fazer login</a>",
-			)
-			
-		}
-
-	
-
-
-
-// LOGIN DE PAGE
-func loginPage(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-
-	if r.Method != http.MethodGet {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
-		return
-	}
-
-	http.ServeFile(w, r, "templates/login.html")
-}
-
-//PAGINA INICIO
-func paginaInicio(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
-		return
-	}
-
-	http.ServeFile(w, r, "templates/pagina_inicio.html")
-}
-
-
-//REGISTRO DE HANDLER
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		http.ServeFile(w, r, "templates/register.html")
@@ -149,4 +100,53 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+}
+
+func processarRegisto(w http.ResponseWriter, r *http.Request) {
+	novoUsuario := r.FormValue("username")
+	novaSenha := r.FormValue("password")
+
+	if novoUsuario == "" || novaSenha == "" {
+		http.Error(w, "Preencha todos os campos", http.StatusBadRequest)
+		return
+	}
+
+	// Verifica se usuário já existe
+	var id int
+	err := db.QueryRow(
+		"SELECT id FROM usuarios WHERE username = ?",
+		novoUsuario,
+	).Scan(&id)
+
+	if err == nil {
+		http.Error(w, "Usuário já existe", http.StatusBadRequest)
+		return
+	}
+
+	_, err = db.Exec(
+		"INSERT INTO usuarios (username, password) VALUES (?, ?)",
+		novoUsuario,
+		novaSenha,
+	)
+
+	if err != nil {
+		http.Error(w, "Erro ao criar conta", http.StatusInternalServerError)
+		return
+	}
+
+	// Redireciona para login
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+//
+// ================== PÁGINA INICIAL ==================
+//
+
+func paginaInicio(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	http.ServeFile(w, r, "templates/pagina_inicio.html")
 }

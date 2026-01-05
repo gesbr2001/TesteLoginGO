@@ -75,3 +75,68 @@ button:hover {
     background-color: #17702c
 }
 
+/*============== SIDEBAR=======================*/
+.perfil-side{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.perfil-side h3 {
+    margin: 0;
+}
+
+.perfil-side a {
+    text-decoration: none;
+    color: #ccc;
+    font-size: 14px;
+}
+
+.perfil-side:hover {
+    color: #fff;
+}
+
+
+.sidebar {
+    position: fixed;       
+    top: 0;
+    left: 0;
+    width: 220px;
+    height: 100vh;          
+    background-color: #005ca7;
+    padding: 20px;
+    overflow-y: auto;
+
+    
+}
+
+.sidebar h2 {
+    color: #fff;
+    margin-bottom: 30px;
+    text-align: left;
+    margin-left: 12px;
+}
+
+.sidebar a {
+    display: block;
+    color: #ccc;
+    text-decoration: none;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.sidebar a:hover {
+    background-color: #04467c;
+    color: #fff;
+}
+
+.content {
+    margin-left: 220px;     
+    padding: 20px;
+}
+
+.divider {
+    height: 1px;
+    background-color: #ffffff;
+    margin: 20px 0;
+}

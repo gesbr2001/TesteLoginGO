@@ -14,15 +14,49 @@
 
     <div class="login-container">
         <h2>Bem-vindo</h2>
-        <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="Usuario" required>
+
+        <form id="loginForm">
+            <input type="text" name="username" placeholder="Usuário" required>
             <input type="password" name="password" placeholder="Senha" required>
+    
             <button type="submit">Entrar</button>
+    
             <p>
-                <a href="/register" class="btn"> Novo Usuario </a>
+                <a class="btn" href="/register">Novo Usuário</a>
             </p>
+            <p>
+                <a style="color: rgb(73, 73, 73); font-size: 16px; text-decoration: none;" href="#"> Reset de senha </a>
+            </p>
+            <div>
+
+            </div>
         </form>
     </div>
-
+    
+    <script>
+    document.getElementById("loginForm").addEventListener("submit", function(e) {
+        e.preventDefault(); // impede recarregar página
+    
+        const formData = new FormData(this);
+    
+        fetch("/login", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                //  LOGIN OK → REDIRECIONA
+                window.location.href = "/pagina_inicio";
+            } else {
+                //  LOGIN ERRADO → POPUP
+                alert(data.message);
+            }
+        })
+        .catch(() => {
+            alert("Erro ao conectar com o servidor");
+        });
+    });
+    </script>
 </body>
 </html>
